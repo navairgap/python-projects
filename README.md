@@ -59,3 +59,10 @@ MIT (see [LICENSE](LICENSE))
 ## Versioning
 
 no releases — `main` is always green (CI enforces it) and every project is invocable straight from a clone. if that ever changes, this file will say so loudly.
+
+## Design decisions
+
+- argparse over click — stdlib parity, zero installs
+- unittest over pytest — same reason; suites stay runnable on a stock python
+- one file of logic + one of tests per project; no classes where a function does it
+- no network in CI: every external call is mocked
