@@ -66,3 +66,7 @@ no releases — `main` is always green (CI enforces it) and every project is inv
 - unittest over pytest — same reason; suites stay runnable on a stock python
 - one file of logic + one of tests per project; no classes where a function does it
 - no network in CI: every external call is mocked
+
+## CI
+
+github actions runs `make test` on python 3.9–3.12 for every push: six suites, zero network. the makefile is the single source of truth — if `make test` passes locally, ci passes.
