@@ -70,3 +70,7 @@ no releases — `main` is always green (CI enforces it) and every project is inv
 ## CI
 
 github actions runs `make test` on python 3.9–3.12 for every push: six suites, zero network. the makefile is the single source of truth — if `make test` passes locally, ci passes.
+
+## Non-goals
+
+no web UI, no cloud sync, no plugin system — the repo stays a set of scripts you can read end to end. when a project outgrows that, it graduates to its own repo.
