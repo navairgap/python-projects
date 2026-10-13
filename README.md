@@ -74,3 +74,7 @@ github actions runs `make test` on python 3.9–3.12 for every push: six suites,
 ## Non-goals
 
 no web UI, no cloud sync, no plugin system — the repo stays a set of scripts you can read end to end. when a project outgrows that, it graduates to its own repo.
+
+## Debugging
+
+run any tool with `python3 -X dev <tool>.py` for warnings-as-errors; every cli prints failures to stderr and exits non-zero. there are no log files — output is the log.
