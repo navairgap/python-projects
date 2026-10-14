@@ -78,3 +78,9 @@ no web UI, no cloud sync, no plugin system — the repo stays a set of scripts y
 ## Debugging
 
 run any tool with `python3 -X dev <tool>.py` for warnings-as-errors; every cli prints failures to stderr and exits non-zero. there are no log files — output is the log.
+
+## FAQ
+
+**why not one package with a pyproject?** because the point is six independent tools — each one clones, runs, and tests alone. a monorepo with packaging would couple their release cycles to each other for no user benefit.
+
+**will any project grow dependencies?** only if the problem genuinely can't be solved in stdlib. so far, nothing has qualified.
