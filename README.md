@@ -84,3 +84,7 @@ run any tool with `python3 -X dev <tool>.py` for warnings-as-errors; every cli p
 **why not one package with a pyproject?** because the point is six independent tools — each one clones, runs, and tests alone. a monorepo with packaging would couple their release cycles to each other for no user benefit.
 
 **will any project grow dependencies?** only if the problem genuinely can't be solved in stdlib. so far, nothing has qualified.
+
+## Toolchain
+
+python 3.9 is the floor because CI tests it and the code respects it — no match statements, no `X | Y` annotations. when 3.9 leaves the matrix, the syntax can modernize in one commit.
