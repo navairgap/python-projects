@@ -22,7 +22,7 @@ small enough to read in one sitting. Learning in public, done properly.
 | [weather-cli](weather-cli/) | current conditions via wttr.in | `python3 weather-cli/weather.py pune` |
 | [disk-audit](disk-audit/) | find what's eating your disk | `python3 disk-audit/audit.py ~/Downloads` |
 | [netcheck](netcheck/) | port / dns / http diagnostics | `python3 netcheck/netcheck.py port example.com 443` |
-| [serveit](serveit/) | static file server, one command | `python3 serveit/serveit.py ~/share` |
+| [serveit](serveit/) | static file server (localhost; listings off by default) | `python3 serveit/serveit.py ~/share` |
 
 Every project has tests. Every project has a README that fits on one screen.
 
@@ -63,13 +63,13 @@ no releases — `main` is always green (CI enforces it) and every project is inv
 ## Design decisions
 
 - argparse over click — stdlib parity, zero installs
-- unittest over pytest — same reason; suites stay runnable on a stock python
-- one file of logic + one of tests per project; no classes where a function does it
+- unittest over pytest — same reason, suites stay runnable on a stock python
+- one file of logic + one of tests per project — no classes where a function does it
 - no network in CI: every external call is mocked
 
 ## CI
 
-github actions runs `make test` on python 3.9–3.12 for every push: six suites, zero network. the makefile is the single source of truth — if `make test` passes locally, ci passes.
+github actions runs `make test` on Python 3.9–3.12 for every push: six suites, zero network. the makefile is the single source of truth — if `make test` passes locally, ci passes.
 
 ## Non-goals
 
