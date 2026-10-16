@@ -15,4 +15,4 @@ run tests: `python3 -m unittest discover -s serveit -v`
 
 ## disabling listings
 
-`--no-listing` returns 404 for directory requests while files still serve fine. Use it when sharing folders whose names you'd rather not advertise.
+Directory listings are disabled by default and return 404 while known files still serve. Use `--list` only when you explicitly want to expose a directory index. `--no-listing` is retained as an explicit disable switch.
