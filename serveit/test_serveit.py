@@ -16,6 +16,9 @@ def serve_dir(path, port):
 
 
 class TestServe(unittest.TestCase):
+    def test_directory_listing_disabled_by_default(self):
+        self.assertFalse(serveit.Handler.allow_listing)
+
     def test_get_file(self):
         import tempfile, os
         with tempfile.TemporaryDirectory() as d:
@@ -55,7 +58,7 @@ class TestNoListing(unittest.TestCase):
                 self.assertEqual(ctx.exception.code, 404)
                 srv.shutdown()
         finally:
-            serveit.Handler.allow_listing = True
+            serveit.Handler.allow_listing = False
 
 
 if __name__ == "__main__":
