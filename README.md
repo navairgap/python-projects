@@ -88,3 +88,7 @@ run any tool with `python3 -X dev <tool>.py` for warnings-as-errors; every cli p
 ## Toolchain
 
 python 3.9 is the floor because CI tests it and the code respects it — no match statements, no `X | Y` annotations. when 3.9 leaves the matrix, the syntax can modernize in one commit.
+
+## History
+
+born as python-basics, renamed when it became clear the repo wasn't about learning syntax — it was about the discipline: stdlib only, tested, small. the rename was the mission statement.
