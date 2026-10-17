@@ -12,6 +12,8 @@ BASE = "https://wttr.in/{place}?format=j1{unit}"
 
 
 def fetch(place, units="m"):
+    if units not in ("m", "u"):
+        raise ValueError("units must be 'm' (metric) or 'u' (USCS)")
     flag = "" if units == "m" else "u"
     url = BASE.format(place=urllib.parse.quote(place), unit=flag)
     with urllib.request.urlopen(url, timeout=8) as r:
