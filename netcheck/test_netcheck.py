@@ -40,6 +40,14 @@ class TestHttp(unittest.TestCase):
                           side_effect=HTTPError("u", 404, "nf", {}, None)):
             self.assertEqual(netcheck.http_status("http://x/"), 404)
 
+    def test_rejects_non_http_schemes_before_open(self):
+        with patch.object(netcheck.urllib.request, "urlopen") as open_url:
+            self.assertIsNone(netcheck.http_status("file:///etc/passwd"))
+        open_url.assert_not_called()
+
+    def test_malformed_url_returns_none(self):
+        self.assertIsNone(netcheck.http_status("http://["))
+
 
 if __name__ == "__main__":
     unittest.main()
