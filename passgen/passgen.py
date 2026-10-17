@@ -48,10 +48,11 @@ def strength(password, no_ambiguous=False):
     """rough entropy estimate in bits + a word rating."""
     import math
     pools = 0
-    for chars, amb in ((string.ascii_lowercase, 1), (string.ascii_uppercase, 1),
-                       (string.digits, 1), (SETS["symbols"], 0)):
-        if set(password) & set(chars):
-            pools += len("".join(c for c in chars if c not in AMBIGUOUS)) if (no_ambiguous and not amb) else len(chars) if amb or not no_ambiguous else len(chars)
+    for chars in (string.ascii_lowercase, string.ascii_uppercase,
+                  string.digits, SETS["symbols"]):
+        allowed = "".join(c for c in chars if not (no_ambiguous and c in AMBIGUOUS))
+        if set(password) & set(allowed):
+            pools += len(allowed)
     bits = len(password) * math.log2(pools) if pools else 0
     rating = "weak" if bits < 45 else "ok" if bits < 70 else "strong" if bits < 100 else "excellent"
     return {"bits": round(bits, 1), "rating": rating}
