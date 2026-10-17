@@ -24,6 +24,8 @@ def save(items):
 
 
 def add(text):
+    if not text or not text.strip():
+        raise ValueError("task text cannot be empty")
     items = load()
     items.append({"task": text, "done": False,
                   "created": datetime.now(timezone.utc).isoformat()[:16]})
@@ -90,7 +92,10 @@ def main():
     a = ap.parse_args()
 
     if a.cmd == "add":
-        print(f"added #{add(a.text)}")
+        try:
+            print(f"added #{add(a.text)}")
+        except ValueError as e:
+            ap.error(str(e))
     elif a.cmd == "ls":
         ls(a.all)
     elif a.cmd in ("done", "undone"):
