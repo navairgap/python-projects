@@ -47,6 +47,12 @@ class TestWeather(unittest.TestCase):
             with self.assertRaises(URLError):
                 weather.fetch("pune")
 
+    def test_unsupported_units_rejected_before_network(self):
+        with patch.object(weather.urllib.request, "urlopen") as open_url:
+            with self.assertRaises(ValueError):
+                weather.fetch("pune", units="kelvin")
+        open_url.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
