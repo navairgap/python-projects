@@ -84,6 +84,12 @@ class TestUnits(unittest.TestCase):
             weather.fetch("pune", units="u")
         self.assertIn("format=j1u", m.call_args.args[0])
 
+    def test_place_slash_is_percent_encoded(self):
+        with patch.object(weather.urllib.request, "urlopen") as m:
+            m.return_value.__enter__.return_value.read.return_value = b"{}"
+            weather.fetch("north/south")
+        self.assertIn("north%2Fsouth", m.call_args.args[0])
+
 
 if __name__ == "__main__":
     unittest.main()
