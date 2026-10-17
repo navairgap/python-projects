@@ -51,6 +51,18 @@ class TestTodo(unittest.TestCase):
         with self.assertRaises(IndexError):
             todo.rm(7)
 
+    def test_invalid_item_numbers(self):
+        todo.add("sample")
+        for number in (0, -1, 2):
+            for operation in (
+                lambda n=number: todo.done(n),
+                lambda n=number: todo.pri(n, "high"),
+                lambda n=number: todo.rm(n),
+            ):
+                with self.subTest(number=number, operation=operation):
+                    with self.assertRaises(IndexError):
+                        operation()
+
 
 if __name__ == "__main__":
     unittest.main()
