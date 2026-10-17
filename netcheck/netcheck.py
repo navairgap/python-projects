@@ -28,14 +28,17 @@ def dns_time(host):
         return None
 
 def http_status(url, timeout=DEFAULT_TIMEOUT):
-    """HEAD a url, return status code or None."""
+    """HEAD an HTTP(S) URL, return status code or None for failures."""
     try:
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
+            return None
         req = urllib.request.Request(url, method="HEAD")
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status
     except urllib.error.HTTPError as e:
         return e.code
-    except OSError:
+    except (OSError, ValueError):
         return None
 
 def local_ip():
