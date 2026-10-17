@@ -18,6 +18,10 @@ AMBIGUOUS = set("l1IO0")
 
 def generate(length=16, lower=True, upper=True, digits=True, symbols=True, count=1,
              no_ambiguous=False, exclude_chars=""):
+    if length < 1:
+        raise ValueError("length must be at least 1")
+    if count < 1:
+        raise ValueError("count must be at least 1")
     pools = [chars for chars, on in (
         (SETS["lower"], lower), (SETS["upper"], upper),
         (SETS["digits"], digits), (SETS["symbols"], symbols),
