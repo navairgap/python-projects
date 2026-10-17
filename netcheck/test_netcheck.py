@@ -48,6 +48,16 @@ class TestHttp(unittest.TestCase):
     def test_malformed_url_returns_none(self):
         self.assertIsNone(netcheck.http_status("http://["))
 
+    def test_timeout_is_forwarded(self):
+        with patch.object(netcheck.urllib.request, "urlopen") as open_url:
+            open_url.return_value.__enter__.return_value.status = 204
+            self.assertEqual(netcheck.http_status("https://example.com", timeout=0.5), 204)
+        self.assertEqual(open_url.call_args.kwargs["timeout"], 0.5)
+
+    def test_nonpositive_timeout_rejected(self):
+        with self.assertRaises(ValueError):
+            netcheck.http_status("https://example.com", timeout=0)
+
 
 if __name__ == "__main__":
     unittest.main()
