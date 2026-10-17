@@ -15,7 +15,7 @@ def fetch(place, units="m"):
     if units not in ("m", "u"):
         raise ValueError("units must be 'm' (metric) or 'u' (USCS)")
     flag = "" if units == "m" else "u"
-    url = BASE.format(place=urllib.parse.quote(place), unit=flag)
+    url = BASE.format(place=urllib.parse.quote(place, safe=""), unit=flag)
     with urllib.request.urlopen(url, timeout=8) as r:
         return json.loads(r.read().decode())
 
