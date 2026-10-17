@@ -41,15 +41,22 @@ def ls(show_all=False):
         print("nothing here. enjoy it or add something.")
 
 
+def _item(items, n):
+    """Return a 1-based item or reject invalid CLI indexes."""
+    if n < 1 or n > len(items):
+        raise IndexError(f"no item #{n}")
+    return items[n - 1]
+
+
 def done(n, value=True):
     items = load()
-    items[n - 1]["done"] = value
+    _item(items, n)["done"] = value
     save(items)
 
 
 def pri(n, value):
     items = load()
-    items[n - 1]["priority"] = value
+    _item(items, n)["priority"] = value
     save(items)
 
 
@@ -61,7 +68,8 @@ def stats():
 
 def rm(n):
     items = load()
-    removed = items.pop(n - 1)
+    removed = _item(items, n)
+    items.pop(n - 1)
     save(items)
     return removed["task"]
 
@@ -86,7 +94,10 @@ def main():
     elif a.cmd == "ls":
         ls(a.all)
     elif a.cmd in ("done", "undone"):
-        done(a.n, a.cmd == "done")
+        try:
+            done(a.n, a.cmd == "done")
+        except IndexError:
+            sys.exit(f"no item #{a.n}")
     elif a.cmd == "pri":
         try:
             pri(a.n, a.priority)
