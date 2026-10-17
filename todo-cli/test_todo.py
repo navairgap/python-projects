@@ -21,6 +21,12 @@ class TestTodo(unittest.TestCase):
         self.assertEqual(len(todo.load()), 2)
         self.assertFalse(todo.load()[0]["done"])
 
+    def test_blank_task_rejected(self):
+        for value in ("", "   ", "\\t"):
+            with self.subTest(value=repr(value)):
+                with self.assertRaises(ValueError):
+                    todo.add(value)
+
     def test_done_and_undone(self):
         todo.add("a")
         todo.done(1)
