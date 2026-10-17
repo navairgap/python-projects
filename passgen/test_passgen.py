@@ -28,6 +28,16 @@ class TestGenerate(unittest.TestCase):
         with self.assertRaises(ValueError):
             generate(length=2)
 
+    def test_nonpositive_count_rejected(self):
+        for count in (0, -1):
+            with self.subTest(count=count):
+                with self.assertRaises(ValueError):
+                    generate(count=count)
+
+    def test_nonpositive_length_rejected(self):
+        with self.assertRaises(ValueError):
+            generate(length=0)
+
 
 class TestStrength(unittest.TestCase):
     def test_long_beats_short(self):
