@@ -101,3 +101,16 @@ class TestTotalsOnly(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTopValidation(unittest.TestCase):
+    def test_nonpositive_top_rejected(self):
+        import subprocess
+        import sys
+        script = os.path.join(os.path.dirname(__file__), "audit.py")
+        result = subprocess.run(
+            [sys.executable, script, "--top", "0"],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--top must be at least 1", result.stderr)
