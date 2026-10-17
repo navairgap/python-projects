@@ -29,6 +29,8 @@ def dns_time(host):
 
 def http_status(url, timeout=DEFAULT_TIMEOUT):
     """HEAD an HTTP(S) URL, return status code or None for failures."""
+    if timeout <= 0:
+        raise ValueError("timeout must be greater than zero")
     try:
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
@@ -78,7 +80,7 @@ def main():
         print(f"{a.host} resolves in {ms}ms" if ms is not None else f"{a.host} does not resolve")
         sys.exit(0 if ms is not None else 1)
     elif a.cmd == "http":
-        code = http_status(a.url)
+        code = http_status(a.url, timeout=a.timeout)
         print(f"{a.url} -> {code}" if code else f"{a.url} unreachable")
         sys.exit(0 if code else 1)
     elif a.cmd == "ip":
