@@ -22,7 +22,7 @@ class TestTodo(unittest.TestCase):
         self.assertFalse(todo.load()[0]["done"])
 
     def test_blank_task_rejected(self):
-        for value in ("", "   ", "\\t"):
+        for value in ("", "   ", "\t"):
             with self.subTest(value=repr(value)):
                 with self.assertRaises(ValueError):
                     todo.add(value)
