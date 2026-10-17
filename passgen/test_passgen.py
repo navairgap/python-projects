@@ -41,6 +41,12 @@ class TestStrength(unittest.TestCase):
         from passgen import strength
         self.assertEqual(strength(""), {"bits": 0.0, "rating": "weak"})
 
+    def test_ambiguity_free_pool_has_lower_entropy(self):
+        from passgen import strength
+        ordinary = strength("abc123!")
+        ambiguity_free = strength("abc123!", no_ambiguous=True)
+        self.assertLess(ambiguity_free["bits"], ordinary["bits"])
+
 
 if __name__ == "__main__":
     unittest.main()
