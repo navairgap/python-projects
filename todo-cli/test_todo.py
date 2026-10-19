@@ -46,6 +46,19 @@ class TestTodo(unittest.TestCase):
         self.assertEqual(data[0]["task"], "persist me")
         self.assertIn("created", data[0])
 
+    def test_failed_atomic_replace_preserves_existing_store(self):
+        from unittest.mock import patch
+
+        todo.add("existing task")
+        original = self.store.read_text()
+
+        with patch("todo.os.replace", side_effect=OSError("replace failed")):
+            with self.assertRaises(OSError):
+                todo.add("new task")
+
+        self.assertEqual(self.store.read_text(), original)
+        self.assertEqual([p.name for p in self.store.parent.iterdir()], ["todo.json"])
+
     def test_stats(self):
         todo.add("a")
         todo.add("b")
