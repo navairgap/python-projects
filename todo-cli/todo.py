@@ -3,7 +3,9 @@
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,7 +22,30 @@ def load():
 
 
 def save(items):
-    STORE.write_text(json.dumps(items, indent=2) + "\n")
+    """Persist tasks atomically so an interrupted write cannot truncate the store."""
+    payload = json.dumps(items, indent=2) + "\n"
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            prefix=f".{STORE.name}.",
+            suffix=".tmp",
+            dir=STORE.parent,
+            delete=False,
+        ) as temp:
+            temp_path = temp.name
+            temp.write(payload)
+            temp.flush()
+            os.fsync(temp.fileno())
+        os.replace(temp_path, STORE)
+        temp_path = None
+    finally:
+        if temp_path is not None:
+            try:
+                os.unlink(temp_path)
+            except FileNotFoundError:
+                pass
 
 
 def add(text):
