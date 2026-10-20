@@ -11,6 +11,16 @@ class FakeConn:
 
 
 class TestPort(unittest.TestCase):
+    def test_rejects_invalid_port(self):
+        for port in (0, -1, 65536, True, "80"):
+            with self.subTest(port=port), self.assertRaises(ValueError):
+                netcheck.check_port("example.com", port)
+
+    def test_rejects_invalid_timeout(self):
+        for timeout in (0, -1, float("inf"), float("nan")):
+            with self.subTest(timeout=timeout), self.assertRaises(ValueError):
+                netcheck.check_port("example.com", 443, timeout=timeout)
+
     def test_open_port(self):
         with patch.object(socket, "create_connection", return_value=FakeConn()):
             ok, ms = netcheck.check_port("example.com", 443)
@@ -68,6 +78,22 @@ class FakeConn:
 
 
 class TestTimeout(unittest.TestCase):
+    def test_cli_timeout_parser_rejects_nonpositive_and_nonfinite(self):
+        for value in ("0", "-1", "inf", "nan"):
+            with self.subTest(value=value), self.assertRaises(SystemExit):
+                import argparse
+                parser = argparse.ArgumentParser()
+                parser.add_argument("--timeout", type=netcheck.positive_timeout)
+                parser.parse_args(["--timeout", value])
+
+    def test_cli_port_parser_rejects_out_of_range(self):
+        for value in ("0", "65536", "abc"):
+            with self.subTest(value=value), self.assertRaises(SystemExit):
+                import argparse
+                parser = argparse.ArgumentParser()
+                parser.add_argument("port", type=netcheck.tcp_port)
+                parser.parse_args([value])
+
     def test_timeout_forwarded(self):
         seen = {}
         def fake(addr, timeout=3):

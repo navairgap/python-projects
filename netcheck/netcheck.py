@@ -2,6 +2,7 @@
 """netcheck - small network diagnostics. stdlib only."""
 
 import argparse
+import math
 import socket
 import sys
 import time
@@ -9,8 +10,32 @@ import urllib.request
 
 DEFAULT_TIMEOUT = 3
 
+def positive_timeout(value):
+    """argparse type: require a finite, positive timeout in seconds."""
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("timeout must be a number greater than zero")
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise argparse.ArgumentTypeError("timeout must be a finite number greater than zero")
+    return timeout
+
+def tcp_port(value):
+    """argparse type: accept only valid TCP port numbers."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("port must be an integer from 1 to 65535")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("port must be between 1 and 65535")
+    return port
+
 def check_port(host, port, timeout=DEFAULT_TIMEOUT):
     """return (ok, latency_ms) for a TCP connect."""
+    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
+        raise ValueError("port must be an integer from 1 to 65535")
+    if not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("timeout must be a finite number greater than zero")
     start = time.perf_counter()
     try:
         with socket.create_connection((host, port), timeout=timeout):
@@ -57,11 +82,11 @@ def local_ip():
 def main():
     ap = argparse.ArgumentParser(prog="netcheck", description="small network diagnostics")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("port"); p.add_argument("host"); p.add_argument("port", type=int, nargs="+")
+    p = sub.add_parser("port"); p.add_argument("host"); p.add_argument("port", type=tcp_port, nargs="+")
     p = sub.add_parser("dns"); p.add_argument("host")
     p = sub.add_parser("http"); p.add_argument("url")
     sub.add_parser("ip")
-    ap.add_argument("-t", "--timeout", type=float, default=DEFAULT_TIMEOUT)
+    ap.add_argument("-t", "--timeout", type=positive_timeout, default=DEFAULT_TIMEOUT)
     a = ap.parse_args()
 
     if a.cmd == "port":
