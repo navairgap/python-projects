@@ -92,3 +92,8 @@ python 3.9 is the floor because CI tests it and the code respects it — no matc
 ## History
 
 born as python-basics, renamed when it became clear the repo wasn't about learning syntax — it was about the discipline: stdlib only, tested, small. the rename was the mission statement.
+
+
+## Test expectations
+
+Prefer deterministic unit tests with mocked network calls and temporary files. Cover invalid input, missing files, permission errors, Unicode, and boundary values; document supported Python versions for each CLI.
