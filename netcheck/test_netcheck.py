@@ -68,6 +68,11 @@ class TestHttp(unittest.TestCase):
         with self.assertRaises(ValueError):
             netcheck.http_status("https://example.com", timeout=0)
 
+    def test_nonfinite_or_non_numeric_timeout_rejected(self):
+        for timeout in (float("inf"), float("nan"), True, "1"):
+            with self.subTest(timeout=timeout), self.assertRaises(ValueError):
+                netcheck.http_status("https://example.com", timeout=timeout)
+
 
 if __name__ == "__main__":
     unittest.main()
