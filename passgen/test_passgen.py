@@ -163,6 +163,22 @@ class TestMainSmoke(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertEqual(len(out.stdout.strip().split("-")), 3)
 
+    def test_passphrase_rejects_zero_words_and_count(self):
+        import os
+        import subprocess
+        import sys
+        script = os.path.join(os.path.dirname(__file__), "passgen.py")
+        for args, message in (
+            (["--passphrase", "--words", "0"], "words must be an integer of at least 1"),
+            (["--passphrase", "--count", "0"], "--count must be at least 1"),
+        ):
+            with self.subTest(args=args):
+                out = subprocess.run(
+                    [sys.executable, script, *args], capture_output=True, text=True
+                )
+                self.assertEqual(out.returncode, 2)
+                self.assertIn(message, out.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
