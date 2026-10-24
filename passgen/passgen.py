@@ -70,6 +70,11 @@ WORDS = ("amber binary cobalt delta ember frost glacier harbor ivory jasper "
 
 
 def passphrase(words=5, separator="-"):
+    """Generate a passphrase containing a positive number of words."""
+    if isinstance(words, bool) or not isinstance(words, int) or words < 1:
+        raise ValueError("words must be an integer of at least 1")
+    if not isinstance(separator, str):
+        raise ValueError("separator must be a string")
     import secrets as _s
     return separator.join(_s.choice(WORDS) for _ in range(words))
 
@@ -90,8 +95,13 @@ def main():
     a = ap.parse_args()
 
     if a.passphrase:
-        for _ in range(a.count):
-            print(passphrase(a.words))
+        if a.count < 1:
+            ap.error("--count must be at least 1 for passphrases")
+        try:
+            for _ in range(a.count):
+                print(passphrase(a.words))
+        except ValueError as e:
+            ap.error(str(e))
         return
 
     try:
