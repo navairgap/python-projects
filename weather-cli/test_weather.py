@@ -26,6 +26,11 @@ class TestWeather(unittest.TestCase):
         self.assertEqual(info["temp_c"], "28")
         self.assertEqual(info["desc"], "Haze")
 
+    def test_summarise_falls_back_to_weather_desc(self):
+        sample = json.loads(json.dumps(SAMPLE))
+        sample["current_condition"][0]["lang_en"] = []
+        self.assertEqual(weather.summarise(sample)["desc"], "Haze")
+
     def test_render_text(self):
         info = weather.summarise(SAMPLE)
         with patch("builtins.print") as p:
