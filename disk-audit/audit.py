@@ -4,6 +4,7 @@
 import argparse
 import csv
 import json
+import math
 import os
 import sys
 from dataclasses import dataclass, field
@@ -23,11 +24,23 @@ def format_size(n):
         n /= 1024
 
 def parse_size(s):
+    """Parse a non-negative byte count or a value with B/K/M/G/T suffix."""
     mult = {"B": 1, "K": 1024, "M": 1024 ** 2, "G": 1024 ** 3, "T": 1024 ** 4}
+    if not isinstance(s, str) or not s.strip():
+        raise ValueError("size must be a non-negative number with optional B/K/M/G/T suffix")
     s = s.upper().strip()
-    if s[-1:] in mult:
-        return int(float(s[:-1]) * mult[s[-1]])
-    return int(s)
+    try:
+        if s[-1:] in mult:
+            amount = float(s[:-1])
+            if not math.isfinite(amount) or amount < 0:
+                raise ValueError
+            return int(amount * mult[s[-1]])
+        amount = int(s)
+        if amount < 0:
+            raise ValueError
+        return amount
+    except (ValueError, OverflowError):
+        raise ValueError("size must be a non-negative number with optional B/K/M/G/T suffix") from None
 
 def audit(root, exclude=(), min_size=0, _depth=0):
     """walk root; return (per-dir stats, total bytes, total files)."""
@@ -80,7 +93,10 @@ def main():
     if a.top < 1:
         ap.error("--top must be at least 1")
 
-    min_bytes = parse_size(a.min_size)
+    try:
+        min_bytes = parse_size(a.min_size)
+    except ValueError as exc:
+        ap.error(str(exc))
     stats, total, count = audit(a.path, set(a.exclude), min_bytes)
     stats.sort(key=lambda s: s.size, reverse=True)
     rows = stats[: a.top]
