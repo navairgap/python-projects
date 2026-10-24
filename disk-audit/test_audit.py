@@ -66,6 +66,14 @@ class TestFormat(unittest.TestCase):
         self.assertEqual(parse_size("2g"), 2 * 1024 ** 3)
         self.assertEqual(parse_size("512"), 512)
 
+    def test_parse_size_rejects_empty_negative_and_nonfinite_values(self):
+        for value in ("", "  ", "-1", "-1M", "infG", "nanM", "1e999T"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                parse_size(value)
+
+    def test_parse_size_accepts_fractional_suffix(self):
+        self.assertEqual(parse_size("1.5K"), 1536)
+
     def test_render_bars(self):
         rows = [DirStat("/a", 100, 1), DirStat("/b", 50, 1)]
         lines = render_bars(rows, width=10)
