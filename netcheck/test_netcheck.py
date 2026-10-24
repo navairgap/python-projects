@@ -82,6 +82,20 @@ class FakeConn:
     def __exit__(self, *a): return False
 
 
+class TestCliValidation(unittest.TestCase):
+    def test_invalid_port_exits_before_network_access(self):
+        import os
+        import subprocess
+        import sys
+        script = os.path.join(os.path.dirname(__file__), "netcheck.py")
+        result = subprocess.run(
+            [sys.executable, script, "port", "example.com", "65536"],
+            capture_output=True, text=True, timeout=3,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("port must be between 1 and 65535", result.stderr)
+
+
 class TestTimeout(unittest.TestCase):
     def test_cli_timeout_parser_rejects_nonpositive_and_nonfinite(self):
         for value in ("0", "-1", "inf", "nan"):
