@@ -130,3 +130,18 @@ class TestTopValidation(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2)
         self.assertIn("--top must be at least 1", result.stderr)
+
+
+class TestInvalidMinSizeCli(unittest.TestCase):
+    def test_invalid_min_size_has_argparse_error_not_traceback(self):
+        import subprocess
+        import sys
+
+        script = os.path.join(os.path.dirname(__file__), "audit.py")
+        result = subprocess.run(
+            [sys.executable, script, "--min-size=-1M"],
+            capture_output=True, text=True, timeout=3,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("size must be a non-negative number", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
