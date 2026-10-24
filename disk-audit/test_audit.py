@@ -35,6 +35,14 @@ class TestAudit(unittest.TestCase):
         _, total, count = audit(self.root, exclude={"sub"})
         self.assertEqual((total, count), (100, 1))
 
+    def test_default_cache_and_dependency_dirs_are_skipped(self):
+        os.makedirs(os.path.join(self.root, ".cache"))
+        os.makedirs(os.path.join(self.root, "node_modules"))
+        self._w(os.path.join(self.root, ".cache", "ignored.bin"), 900)
+        self._w(os.path.join(self.root, "node_modules", "ignored.bin"), 800)
+        _, total, count = audit(self.root)
+        self.assertEqual((total, count), (700, 3))
+
     def test_symlink_skipped(self):
         try:
             os.symlink(f"{self.root}/sub", f"{self.root}/link")
