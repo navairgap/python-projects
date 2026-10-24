@@ -107,6 +107,13 @@ class TestPriorityField(unittest.TestCase):
         todo.add("check field")
         self.assertEqual(todo.load()[0].get("priority"), "normal")
 
+    def test_priority_updates_persist_across_reload(self):
+        todo.add("prioritize")
+        todo.pri(1, "high")
+        self.assertEqual(todo.load()[0]["priority"], "high")
+        todo.pri(1, "low")
+        self.assertEqual(todo.load()[0]["priority"], "low")
+
 
 if __name__ == "__main__":
     unittest.main()
