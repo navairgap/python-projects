@@ -21,6 +21,25 @@ class TestTodo(unittest.TestCase):
         self.assertEqual(len(todo.load()), 2)
         self.assertFalse(todo.load()[0]["done"])
 
+    def test_list_hides_completed_items_unless_all_requested(self):
+        from unittest.mock import patch
+
+        todo.add("completed task")
+        todo.add("open task")
+        todo.done(1)
+
+        with patch("builtins.print") as printer:
+            todo.ls()
+        open_output = "\\n".join(str(call.args[0]) for call in printer.call_args_list)
+        self.assertIn("open task", open_output)
+        self.assertNotIn("completed task", open_output)
+
+        with patch("builtins.print") as printer:
+            todo.ls(show_all=True)
+        all_output = "\\n".join(str(call.args[0]) for call in printer.call_args_list)
+        self.assertIn("open task", all_output)
+        self.assertIn("completed task", all_output)
+
     def test_blank_task_rejected(self):
         for value in ("", "   ", "\t"):
             with self.subTest(value=repr(value)):
