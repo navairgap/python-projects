@@ -45,6 +45,31 @@ class TestServe(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+class TestListingEnabled(unittest.TestCase):
+    def test_directory_listing_requires_explicit_opt_in(self):
+        import os
+        import tempfile
+        old = serveit.Handler.allow_listing
+        serveit.Handler.allow_listing = True
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                with open(os.path.join(d, "visible.txt"), "w", encoding="utf-8") as f:
+                    f.write("hello")
+                srv = serve_dir(d, 0)
+                try:
+                    with urllib.request.urlopen(
+                        f"http://127.0.0.1:{srv.server_address[1]}/"
+                    ) as response:
+                        html = response.read().decode()
+                        self.assertEqual(response.status, 200)
+                        self.assertIn("visible.txt", html)
+                finally:
+                    srv.shutdown()
+                    srv.server_close()
+        finally:
+            serveit.Handler.allow_listing = old
+
+
 class TestNoListing(unittest.TestCase):
     def test_directory_listing_disabled(self):
         import tempfile
