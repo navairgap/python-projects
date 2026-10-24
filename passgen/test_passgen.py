@@ -92,6 +92,25 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class TestPassphraseValidation(unittest.TestCase):
+    def test_nonpositive_word_count_rejected(self):
+        from passgen import passphrase
+        for words in (0, -1):
+            with self.subTest(words=words), self.assertRaises(ValueError):
+                passphrase(words)
+
+    def test_boolean_and_non_integer_word_counts_rejected(self):
+        from passgen import passphrase
+        for words in (True, 1.5, "3"):
+            with self.subTest(words=words), self.assertRaises(ValueError):
+                passphrase(words)
+
+    def test_separator_must_be_string(self):
+        from passgen import passphrase
+        with self.assertRaises(ValueError):
+            passphrase(3, separator=None)
+
+
 class TestPassphrase(unittest.TestCase):
     def test_shape(self):
         from passgen import passphrase
