@@ -182,3 +182,19 @@ class TestMainSmoke(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGenerateArgumentTypes(unittest.TestCase):
+    def test_length_must_be_positive_integer(self):
+        for length in (True, 1.5, "16", 0, -1):
+            with self.subTest(length=length), self.assertRaises(ValueError):
+                generate(length=length)
+
+    def test_count_must_be_positive_integer(self):
+        for count in (True, 1.5, "2", 0, -1):
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                generate(count=count)
+
+    def test_exclusions_must_be_a_string(self):
+        with self.assertRaises(ValueError):
+            generate(exclude_chars=None)
