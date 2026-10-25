@@ -34,7 +34,8 @@ def check_port(host, port, timeout=DEFAULT_TIMEOUT):
     """return (ok, latency_ms) for a TCP connect."""
     if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
         raise ValueError("port must be an integer from 1 to 65535")
-    if not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
+    if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
+            or not math.isfinite(timeout) or timeout <= 0):
         raise ValueError("timeout must be a finite number greater than zero")
     start = time.perf_counter()
     try:
