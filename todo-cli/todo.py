@@ -14,7 +14,7 @@ STORE = Path(__file__).with_name("todo.json")
 
 def load():
     if STORE.exists():
-        items = json.loads(STORE.read_text())
+        items = json.loads(STORE.read_text(encoding="utf-8"))
         for it in items:
             it.setdefault("priority", "normal")
         return items
