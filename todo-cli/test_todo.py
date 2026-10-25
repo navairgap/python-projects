@@ -65,6 +65,11 @@ class TestTodo(unittest.TestCase):
         self.assertEqual(data[0]["task"], "persist me")
         self.assertIn("created", data[0])
 
+    def test_unicode_task_round_trips(self):
+        task = "नमस्ते 👋 café"
+        todo.add(task)
+        self.assertEqual(todo.load()[0]["task"], task)
+
     def test_failed_atomic_replace_preserves_existing_store(self):
         from unittest.mock import patch
 
