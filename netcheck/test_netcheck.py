@@ -21,6 +21,10 @@ class TestPort(unittest.TestCase):
             with self.subTest(timeout=timeout), self.assertRaises(ValueError):
                 netcheck.check_port("example.com", 443, timeout=timeout)
 
+    def test_rejects_boolean_timeout(self):
+        with self.assertRaises(ValueError):
+            netcheck.check_port("example.com", 443, timeout=True)
+
     def test_open_port(self):
         with patch.object(socket, "create_connection", return_value=FakeConn()):
             ok, ms = netcheck.check_port("example.com", 443)
