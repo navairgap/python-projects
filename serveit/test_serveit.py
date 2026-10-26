@@ -19,6 +19,22 @@ class TestServe(unittest.TestCase):
     def test_directory_listing_disabled_by_default(self):
         self.assertFalse(serveit.Handler.allow_listing)
 
+    def test_cli_rejects_out_of_range_port_without_traceback(self):
+        import os
+        import subprocess
+        import sys
+
+        script = os.path.join(os.path.dirname(__file__), "serveit.py")
+        for port in ("-1", "65536", "not-a-port"):
+            with self.subTest(port=port):
+                result = subprocess.run(
+                    [sys.executable, script, "--port", port],
+                    capture_output=True, text=True, timeout=3,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("port must", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_get_file(self):
         import tempfile, os
         with tempfile.TemporaryDirectory() as d:
