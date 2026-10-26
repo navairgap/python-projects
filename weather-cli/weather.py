@@ -60,7 +60,7 @@ def main():
         render(summarise(fetch(a.place, a.units)), a.json)
     except urllib.error.URLError:
         sys.exit("couldn't reach wttr.in — check your connection and try again")
-    except (KeyError, IndexError):
+    except (KeyError, IndexError, json.JSONDecodeError, UnicodeDecodeError):
         sys.exit("unexpected response from wttr.in — maybe the place name?")
 
 
