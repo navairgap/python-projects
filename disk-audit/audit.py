@@ -102,7 +102,7 @@ def main():
     rows = stats[: a.top]
 
     if a.csv:
-        with open(a.csv, "w", newline="") as f:
+        with open(a.csv, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(["path", "size_bytes", "files"])
             for s in rows:
