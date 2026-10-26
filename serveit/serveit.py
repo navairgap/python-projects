@@ -9,6 +9,18 @@ import sys
 
 QUIET = False
 
+
+def valid_port(value):
+    """Argparse validator for TCP ports; zero requests an ephemeral port."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("port must be an integer from 0 to 65535")
+    if not 0 <= port <= 65535:
+        raise argparse.ArgumentTypeError("port must be between 0 and 65535")
+    return port
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     allow_listing = False
 
@@ -26,7 +38,7 @@ def main():
     global QUIET
     ap = argparse.ArgumentParser(prog="serveit", description="serve a directory over http")
     ap.add_argument("directory", nargs="?", default=".")
-    ap.add_argument("-p", "--port", type=int, default=8000)
+    ap.add_argument("-p", "--port", type=valid_port, default=8000)
     ap.add_argument("-b", "--bind", default="127.0.0.1")
     ap.add_argument("-q", "--quiet", action="store_true")
     ap.add_argument("--list", dest="listing", action="store_true", help="enable directory listings (disabled by default)")
