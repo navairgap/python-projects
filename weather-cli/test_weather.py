@@ -52,6 +52,22 @@ class TestWeather(unittest.TestCase):
             with self.assertRaises(URLError):
                 weather.fetch("pune")
 
+    def test_main_reports_malformed_json_without_traceback(self):
+        import sys
+        malformed = json.JSONDecodeError("invalid JSON", "{", 0)
+        with patch.object(sys, "argv", ["weather.py", "pune"]):
+            with patch.object(weather, "fetch", side_effect=malformed):
+                with self.assertRaisesRegex(SystemExit, "unexpected response from wttr.in"):
+                    weather.main()
+
+    def test_main_reports_invalid_utf8_without_traceback(self):
+        import sys
+        error = UnicodeDecodeError("utf-8", b"\\xff", 0, 1, "invalid start byte")
+        with patch.object(sys, "argv", ["weather.py", "pune"]):
+            with patch.object(weather, "fetch", side_effect=error):
+                with self.assertRaisesRegex(SystemExit, "unexpected response from wttr.in"):
+                    weather.main()
+
     def test_unsupported_units_rejected_before_network(self):
         with patch.object(weather.urllib.request, "urlopen") as open_url:
             with self.assertRaises(ValueError):
