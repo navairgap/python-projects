@@ -45,7 +45,9 @@ def check_port(host, port, timeout=DEFAULT_TIMEOUT):
         return False, None
 
 def dns_time(host):
-    """resolve a host, return ms or None."""
+    """Resolve a non-empty host; return elapsed milliseconds or None."""
+    if not isinstance(host, str) or not host.strip():
+        return None
     start = time.perf_counter()
     try:
         socket.getaddrinfo(host, None)
