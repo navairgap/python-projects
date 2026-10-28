@@ -128,5 +128,14 @@ class TestTimeout(unittest.TestCase):
         self.assertEqual(seen["timeout"], 0.5)
 
 
+class TestHttpUrlTypes(unittest.TestCase):
+    def test_non_string_and_blank_urls_return_none_without_opening(self):
+        for url in (None, "", "  ", 42, [], {}):
+            with self.subTest(url=url):
+                with patch.object(netcheck.urllib.request, "urlopen") as open_url:
+                    self.assertIsNone(netcheck.http_status(url))
+                    open_url.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

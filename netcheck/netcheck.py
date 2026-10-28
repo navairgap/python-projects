@@ -60,6 +60,8 @@ def http_status(url, timeout=DEFAULT_TIMEOUT):
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not math.isfinite(timeout) or timeout <= 0):
         raise ValueError("timeout must be a finite number greater than zero")
+    if not isinstance(url, str) or not url.strip():
+        return None
     try:
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
