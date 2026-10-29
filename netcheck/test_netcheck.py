@@ -38,6 +38,15 @@ class TestPort(unittest.TestCase):
         self.assertIsNone(ms)
 
 
+class TestDnsInvalidInputs(unittest.TestCase):
+    def test_blank_and_non_string_hosts_are_rejected_before_resolution(self):
+        for host in ("", "  ", None, 42, [], {}):
+            with self.subTest(host=host):
+                with patch.object(socket, "getaddrinfo") as resolve:
+                    self.assertIsNone(netcheck.dns_time(host))
+                    resolve.assert_not_called()
+
+
 class TestDns(unittest.TestCase):
     def test_resolves(self):
         self.assertIsNotNone(netcheck.dns_time("localhost"))
