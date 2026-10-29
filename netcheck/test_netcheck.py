@@ -155,7 +155,9 @@ class TestHttpUrlTypes(unittest.TestCase):
         with patch.object(sys, "argv", ["netcheck.py", "http", supplied]):
             with patch.object(netcheck, "http_status", return_value=200):
                 with contextlib.redirect_stdout(output):
-                    netcheck.main()
+                    with unittest.TestCase().assertRaises(SystemExit) as result:
+                        netcheck.main()
+        self.assertEqual(result.exception.code, 0)
         displayed = output.getvalue().strip()
         self.assertEqual(displayed, "https://example.com -> 200")
         self.assertNotIn("secret", displayed)
