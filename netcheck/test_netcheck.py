@@ -145,6 +145,22 @@ class TestHttpUrlTypes(unittest.TestCase):
                     self.assertIsNone(netcheck.http_status(url))
                     open_url.assert_not_called()
 
+    def test_cli_does_not_echo_url_credentials_or_query_tokens(self):
+        import contextlib
+        import io
+        import sys
+
+        supplied = "https://alice:secret@example.com/private?token=secret#fragment"
+        output = io.StringIO()
+        with patch.object(sys, "argv", ["netcheck.py", "http", supplied]):
+            with patch.object(netcheck, "http_status", return_value=200):
+                with contextlib.redirect_stdout(output):
+                    netcheck.main()
+        displayed = output.getvalue().strip()
+        self.assertEqual(displayed, "https://example.com -> 200")
+        self.assertNotIn("secret", displayed)
+        self.assertNotIn("/private", displayed)
+
 
 if __name__ == "__main__":
     unittest.main()

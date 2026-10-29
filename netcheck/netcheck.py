@@ -74,6 +74,22 @@ def http_status(url, timeout=DEFAULT_TIMEOUT):
     except (OSError, ValueError):
         return None
 
+def safe_url_label(url):
+    """Return only an HTTP(S) origin for output; never echo URL secrets."""
+    try:
+        parsed = urllib.parse.urlsplit(url)
+        scheme = parsed.scheme.lower()
+        host = parsed.hostname
+        if scheme not in ("http", "https") or not host:
+            return "<invalid URL>"
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        port = parsed.port
+        return f"{scheme}://{host}" + (f":{port}" if port is not None else "")
+    except (TypeError, ValueError):
+        return "<invalid URL>"
+
+
 def local_ip():
     """best-effort local IP without sending any packets."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -112,7 +128,8 @@ def main():
         sys.exit(0 if ms is not None else 1)
     elif a.cmd == "http":
         code = http_status(a.url, timeout=a.timeout)
-        print(f"{a.url} -> {code}" if code else f"{a.url} unreachable")
+        label = safe_url_label(a.url)
+        print(f"{label} -> {code}" if code else f"{label} unreachable")
         sys.exit(0 if code else 1)
     elif a.cmd == "ip":
         print(local_ip())
