@@ -125,6 +125,12 @@ class TestUnits(unittest.TestCase):
             weather.fetch("north/south")
         self.assertIn("north%2Fsouth", m.call_args.args[0])
 
+    def test_default_network_timeout_is_bounded(self):
+        with patch.object(weather.urllib.request, "urlopen") as m:
+            m.return_value.__enter__.return_value.read.return_value = b"{}"
+            weather.fetch("Pune")
+        self.assertEqual(m.call_args.kwargs["timeout"], 8)
+
 
 if __name__ == "__main__":
     unittest.main()
