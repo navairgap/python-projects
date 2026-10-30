@@ -74,6 +74,20 @@ class TestWeather(unittest.TestCase):
                 weather.fetch("pune", units="kelvin")
         open_url.assert_not_called()
 
+    def test_non_string_place_rejected_before_network(self):
+        for place in (None, 42, [], {}):
+            with self.subTest(place=place):
+                with patch.object(weather.urllib.request, "urlopen") as open_url:
+                    with self.assertRaisesRegex(ValueError, "place must be a string"):
+                        weather.fetch(place)
+                    open_url.assert_not_called()
+
+    def test_whitespace_place_is_trimmed(self):
+        with patch.object(weather.urllib.request, "urlopen") as open_url:
+            open_url.return_value.__enter__.return_value.read.return_value = b"{}"
+            weather.fetch("  Pune  ")
+        self.assertIn("wttr.in/Pune?", open_url.call_args.args[0])
+
 
 if __name__ == "__main__":
     unittest.main()

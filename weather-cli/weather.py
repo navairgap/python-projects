@@ -12,6 +12,9 @@ BASE = "https://wttr.in/{place}?format=j1{unit}"
 
 
 def fetch(place, units="m"):
+    if not isinstance(place, str):
+        raise ValueError("place must be a string")
+    place = place.strip()
     if units not in ("m", "u"):
         raise ValueError("units must be 'm' (metric) or 'u' (USCS)")
     flag = "" if units == "m" else "u"
