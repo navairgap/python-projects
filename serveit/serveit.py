@@ -24,6 +24,18 @@ def valid_port(value):
 class Handler(http.server.SimpleHTTPRequestHandler):
     allow_listing = False
 
+    def translate_path(self, path):
+        """Resolve requested paths and keep symlinks inside the served root."""
+        root = os.path.realpath(self.directory)
+        candidate = os.path.realpath(super().translate_path(path))
+        try:
+            inside_root = os.path.commonpath((root, candidate)) == root
+        except ValueError:
+            inside_root = False
+        if not inside_root:
+            return os.path.join(root, ".serveit-denied")
+        return candidate
+
     def log_message(self, fmt, *args):
         if not QUIET:
             super().log_message(fmt, *args)
