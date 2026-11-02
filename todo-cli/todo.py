@@ -13,12 +13,27 @@ STORE = Path(__file__).with_name("todo.json")
 
 
 def load():
-    if STORE.exists():
+    if not STORE.exists():
+        return []
+
+    try:
         items = json.loads(STORE.read_text(encoding="utf-8"))
-        for it in items:
-            it.setdefault("priority", "normal")
-        return items
-    return []
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError("todo store is not readable valid JSON") from exc
+    if not isinstance(items, list):
+        raise ValueError("todo store must contain a JSON array")
+
+    for index, item in enumerate(items, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"todo item #{index} must be an object")
+        if not isinstance(item.get("task"), str) or not item["task"].strip():
+            raise ValueError(f"todo item #{index} must have non-empty task text")
+        if not isinstance(item.get("done"), bool):
+            raise ValueError(f"todo item #{index} must have a boolean done field")
+        item.setdefault("priority", "normal")
+        if item["priority"] not in ("high", "normal", "low"):
+            raise ValueError(f"todo item #{index} has an invalid priority")
+    return items
 
 
 def save(items):
@@ -119,28 +134,40 @@ def main():
     if a.cmd == "add":
         try:
             print(f"added #{add(a.text)}")
-        except ValueError as e:
+        except (OSError, ValueError) as e:
             ap.error(str(e))
     elif a.cmd == "ls":
-        ls(a.all)
+        try:
+            ls(a.all)
+        except (OSError, ValueError) as e:
+            ap.error(str(e))
     elif a.cmd in ("done", "undone"):
         try:
             done(a.n, a.cmd == "done")
         except IndexError:
             sys.exit(f"no item #{a.n}")
+        except (OSError, ValueError) as e:
+            ap.error(str(e))
     elif a.cmd == "pri":
         try:
             pri(a.n, a.priority)
         except IndexError:
             sys.exit(f"no item #{a.n}")
+        except (OSError, ValueError) as e:
+            ap.error(str(e))
     elif a.cmd == "stats":
-        total, done = stats()
-        print(f"{done}/{total} done")
+        try:
+            total, done_count = stats()
+        except (OSError, ValueError) as e:
+            ap.error(str(e))
+        print(f"{done_count}/{total} done")
     elif a.cmd == "rm":
         try:
             print(f"removed: {rm(a.n)}")
         except IndexError:
             sys.exit(f"no item #{a.n}")
+        except (OSError, ValueError) as e:
+            ap.error(str(e))
 
 
 if __name__ == "__main__":
