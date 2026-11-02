@@ -21,6 +21,25 @@ class TestTodo(unittest.TestCase):
         self.assertEqual(len(todo.load()), 2)
         self.assertFalse(todo.load()[0]["done"])
 
+    def test_load_rejects_invalid_store_shapes_and_fields(self):
+        invalid_payloads = (
+            "{}",
+            "[null]",
+            '[{"task": "missing done"}]',
+            '[{"task": "task", "done": "false"}]',
+            '[{"task": "task", "done": false, "priority": "urgent"}]',
+        )
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                self.store.write_text(payload, encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    todo.load()
+
+    def test_load_reports_malformed_json_as_value_error(self):
+        self.store.write_text("{not valid JSON", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "not readable valid JSON"):
+            todo.load()
+
     def test_list_hides_completed_items_unless_all_requested(self):
         from unittest.mock import patch
 
