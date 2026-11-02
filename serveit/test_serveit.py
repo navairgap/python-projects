@@ -104,3 +104,32 @@ class TestNoListing(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestSymlinkBoundary(unittest.TestCase):
+    def test_symlink_cannot_serve_a_file_outside_the_root(self):
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as served, tempfile.TemporaryDirectory() as outside:
+            secret = os.path.join(outside, "private.txt")
+            with open(secret, "w", encoding="utf-8") as stream:
+                stream.write("not for serving")
+
+            link = os.path.join(served, "escape.txt")
+            try:
+                os.symlink(secret, link)
+            except (NotImplementedError, OSError) as exc:
+                self.skipTest(f"symlinks unavailable: {exc}")
+
+            server = serve_dir(served, 0)
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as ctx:
+                    urllib.request.urlopen(
+                        f"http://127.0.0.1:{server.server_address[1]}/escape.txt",
+                        timeout=3,
+                    )
+                self.assertEqual(ctx.exception.code, 404)
+            finally:
+                server.shutdown()
+                server.server_close()
+
