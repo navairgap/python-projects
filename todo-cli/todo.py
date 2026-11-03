@@ -64,8 +64,8 @@ def save(items):
 
 
 def add(text):
-    if not text or not text.strip():
-        raise ValueError("task text cannot be empty")
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("task text must be a non-empty string")
     items = load()
     items.append({"task": text, "done": False,
                   "created": datetime.now(timezone.utc).isoformat()[:16]})
@@ -84,19 +84,23 @@ def ls(show_all=False):
 
 
 def _item(items, n):
-    """Return a 1-based item or reject invalid CLI indexes."""
-    if n < 1 or n > len(items):
+    """Return a 1-based item or reject invalid indexes."""
+    if isinstance(n, bool) or not isinstance(n, int) or n < 1 or n > len(items):
         raise IndexError(f"no item #{n}")
     return items[n - 1]
 
 
 def done(n, value=True):
+    if not isinstance(value, bool):
+        raise ValueError("done state must be a boolean")
     items = load()
     _item(items, n)["done"] = value
     save(items)
 
 
 def pri(n, value):
+    if value not in ("high", "normal", "low"):
+        raise ValueError("priority must be high, normal, or low")
     items = load()
     _item(items, n)["priority"] = value
     save(items)
