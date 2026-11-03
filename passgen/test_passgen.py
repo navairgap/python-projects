@@ -198,3 +198,22 @@ class TestGenerateArgumentTypes(unittest.TestCase):
     def test_exclusions_must_be_a_string(self):
         with self.assertRaises(ValueError):
             generate(exclude_chars=None)
+
+
+class TestStrengthInputValidation(unittest.TestCase):
+    def test_strength_rejects_non_string_passwords(self):
+        from passgen import strength
+
+        for password in (None, 7, [], {}):
+            with self.subTest(password=password), self.assertRaises(ValueError):
+                strength(password)
+
+    def test_strength_requires_boolean_ambiguity_flag(self):
+        from passgen import strength
+
+        with self.assertRaises(ValueError):
+            strength("example-password", no_ambiguous=1)
+
+
+if __name__ == "__main__":
+    unittest.main()
