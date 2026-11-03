@@ -52,6 +52,10 @@ def generate(length=16, lower=True, upper=True, digits=True, symbols=True, count
 
 def strength(password, no_ambiguous=False):
     """rough entropy estimate in bits + a word rating."""
+    if not isinstance(password, str):
+        raise ValueError("password must be a string")
+    if not isinstance(no_ambiguous, bool):
+        raise ValueError("no_ambiguous must be a boolean")
     import math
     pools = 0
     for chars in (string.ascii_lowercase, string.ascii_uppercase,
