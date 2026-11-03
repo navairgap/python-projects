@@ -160,3 +160,33 @@ class TestPriorityField(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPublicMutationValidation(unittest.TestCase):
+    def test_add_rejects_non_string_task_text(self):
+        for value in (None, 7, [], {}):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                todo.add(value)
+
+    def test_done_requires_boolean_state(self):
+        todo.add("keep state valid")
+        with self.assertRaises(ValueError):
+            todo.done(1, "false")
+        self.assertFalse(todo.load()[0]["done"])
+
+    def test_priority_rejects_invalid_values_without_mutating_store(self):
+        todo.add("keep priority valid")
+        for value in ("urgent", None, 1):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                todo.pri(1, value)
+        self.assertEqual(todo.load()[0]["priority"], "normal")
+
+    def test_item_index_must_be_integer_and_not_boolean(self):
+        todo.add("one task")
+        for value in (True, 1.5, "1"):
+            with self.subTest(value=value), self.assertRaises(IndexError):
+                todo.done(value)
+
+
+if __name__ == "__main__":
+    unittest.main()
