@@ -214,6 +214,20 @@ class TestStrengthInputValidation(unittest.TestCase):
         with self.assertRaises(ValueError):
             strength("example-password", no_ambiguous=1)
 
+    def test_strength_accounts_for_excluded_characters(self):
+        from passgen import strength
+
+        ordinary = strength("aaaa")
+        restricted = strength("aaaa", exclude_chars="bcdefghijklmnopqrstuvwxyz")
+        self.assertGreater(ordinary["bits"], restricted["bits"])
+        self.assertEqual(restricted["bits"], 0.0)
+
+    def test_strength_requires_string_exclusions(self):
+        from passgen import strength
+
+        with self.assertRaises(ValueError):
+            strength("example-password", exclude_chars=None)
+
 
 if __name__ == "__main__":
     unittest.main()
