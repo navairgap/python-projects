@@ -50,17 +50,22 @@ def generate(length=16, lower=True, upper=True, digits=True, symbols=True, count
     return out
 
 
-def strength(password, no_ambiguous=False):
-    """rough entropy estimate in bits + a word rating."""
+def strength(password, no_ambiguous=False, exclude_chars=""):
+    """Rough entropy estimate using the same character exclusions as generation."""
     if not isinstance(password, str):
         raise ValueError("password must be a string")
     if not isinstance(no_ambiguous, bool):
         raise ValueError("no_ambiguous must be a boolean")
+    if not isinstance(exclude_chars, str):
+        raise ValueError("exclude_chars must be a string")
     import math
+    excluded = set(exclude_chars)
+    if no_ambiguous:
+        excluded.update(AMBIGUOUS)
     pools = 0
     for chars in (string.ascii_lowercase, string.ascii_uppercase,
                   string.digits, SETS["symbols"]):
-        allowed = "".join(c for c in chars if not (no_ambiguous and c in AMBIGUOUS))
+        allowed = "".join(c for c in chars if c not in excluded)
         if set(password) & set(allowed):
             pools += len(allowed)
     bits = len(password) * math.log2(pools) if pools else 0
@@ -115,7 +120,7 @@ def main():
                             not a.no_digits, not a.no_symbols, a.count,
                             a.no_ambiguous, a.exclude):
             if a.show_strength:
-                s = strength(pwd, a.no_ambiguous)
+                s = strength(pwd, a.no_ambiguous, a.exclude)
                 print(f"{pwd}   # {s['bits']} bits, {s['rating']}")
             else:
                 print(pwd)
