@@ -90,6 +90,8 @@ def main():
     ap.add_argument("--csv", metavar="FILE", help="write results to a csv file")
     ap.add_argument("--totals-only", action="store_true", help="skip the per-directory chart")
     a = ap.parse_args()
+    if not os.path.isdir(a.path):
+        ap.error(f"scan path is not a directory: {a.path}")
     if a.top < 1:
         ap.error("--top must be at least 1")
 
