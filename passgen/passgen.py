@@ -30,15 +30,16 @@ def generate(length=16, lower=True, upper=True, digits=True, symbols=True, count
     ) if on]
     if not pools:
         raise ValueError("at least one character set must be enabled")
-    if length < len(pools):
-        raise ValueError(f"length {length} too short for {len(pools)} character sets")
 
-    alphabet = "".join(pools)
-    for excl in (AMBIGUOUS if no_ambiguous else set()) | set(exclude_chars):
-        pools = ["".join(c for c in pool if c != excl) for pool in pools]
+    excluded = (AMBIGUOUS if no_ambiguous else set()) | set(exclude_chars)
+    pools = ["".join(char for char in pool if char not in excluded) for pool in pools]
     pools = [pool for pool in pools if pool]
     if not pools:
         raise ValueError("no characters left after exclusions")
+    if length < len(pools):
+        raise ValueError(
+            f"length {length} too short for {len(pools)} remaining character sets"
+        )
     alphabet = "".join(pools)
     rng = secrets.SystemRandom()
     out = []
