@@ -24,8 +24,8 @@ def valid_port(value):
 class Handler(http.server.SimpleHTTPRequestHandler):
     allow_listing = False
 
-    def translate_path(self, path):
-        """Resolve requested paths and keep symlinks inside the served root."""
+    def _resolve_path(self, path):
+        """Resolve a path and mark requests that escape through symlinks."""
         root = os.path.realpath(self.directory)
         candidate = os.path.realpath(super().translate_path(path))
         try:
@@ -33,8 +33,30 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except ValueError:
             inside_root = False
         if not inside_root:
-            return os.path.join(root, ".serveit-denied")
+            self._serveit_path_denied = True
+            return root
         return candidate
+
+    def translate_path(self, path):
+        """Return the prevalidated path during the base handler's lookup."""
+        cached = getattr(self, "_serveit_cached_path", None)
+        if cached is not None:
+            return cached
+        return self._resolve_path(path)
+
+    def send_head(self):
+        # A fake filename under the document root can collide with a real file.
+        # Decide on the path before the base class sends any success headers.
+        self._serveit_path_denied = False
+        resolved = self._resolve_path(self.path)
+        if self._serveit_path_denied:
+            self.send_error(404, "not found")
+            return None
+        self._serveit_cached_path = resolved
+        try:
+            return super().send_head()
+        finally:
+            self._serveit_cached_path = None
 
     def log_message(self, fmt, *args):
         if not QUIET:
