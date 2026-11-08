@@ -145,3 +145,13 @@ class TestInvalidMinSizeCli(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("size must be a non-negative number", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
+
+
+class TestEmptyDirectoryBars(unittest.TestCase):
+    def test_all_zero_size_directories_render_without_division_error(self):
+        rows = [DirStat("/empty", 0, 0), DirStat("/nested-empty", 0, 0)]
+        lines = render_bars(rows)
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(all("0B" in line for line in lines))
+        self.assertIn("/empty", lines[0])
+        self.assertIn("/nested-empty", lines[1])

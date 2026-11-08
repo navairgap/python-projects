@@ -74,7 +74,7 @@ def audit(root, exclude=(), min_size=0, _depth=0):
 def render_bars(rows, width=40):
     if not rows:
         return []
-    mx = max(r.size for r in rows)
+    mx = max(r.size for r in rows) or 1
     return [
         f"{format_size(r.size):>8}  {'█' * max(1, int(r.size / mx * width))}  {r.path}"
         for r in rows
