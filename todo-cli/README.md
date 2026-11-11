@@ -8,17 +8,15 @@ python3 todo.py ls            # open items
 python3 todo.py ls -a         # everything, done included
 python3 todo.py done 2
 python3 todo.py undone 2
+python3 todo.py pri 1 high    # high / normal / low
 python3 todo.py rm 1
+python3 todo.py stats
 ```
 
 state lives in `todo.json` next to the script. it's json — diff it, back it
 up, whatever. not cloud, not a startup, just a file.
 
-run tests: `python3 -m unittest discover -s . -v`
+`ls` shows each item's creation timestamp, and tags anything whose priority
+isn't `normal`. priority updates survive restarts.
 
-items carry a `priority` field (default `normal`) in `todo.json` — set it by editing the file for now; cli support is on the roadmap.
-
-
-## priorities
-
-`todo.py pri 1 high` sets an item's priority (`high`/`normal`/`low`). The field lives in `todo.json` and survives restarts. Listing by priority is planned; until then `jq` is your friend.
+run tests: `python3 -m unittest discover -s todo-cli -v`

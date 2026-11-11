@@ -30,6 +30,9 @@ def load():
             raise ValueError(f"todo item #{index} must have non-empty task text")
         if not isinstance(item.get("done"), bool):
             raise ValueError(f"todo item #{index} must have a boolean done field")
+        item.setdefault("created", "")
+        if not isinstance(item["created"], str):
+            raise ValueError(f"todo item #{index} must have a string created field")
         item.setdefault("priority", "normal")
         if item["priority"] not in ("high", "normal", "low"):
             raise ValueError(f"todo item #{index} has an invalid priority")
@@ -78,7 +81,12 @@ def ls(show_all=False):
     rows = [(i + 1, it) for i, it in enumerate(items) if show_all or not it["done"]]
     for n, it in rows:
         mark = "x" if it["done"] else " "
-        print(f"[{mark}] {n:>2}  {it['task']}  ({it['created']})")
+        line = f"[{mark}] {n:>2}  {it['task']}"
+        if it["created"]:
+            line += f"  ({it['created']})"
+        if it["priority"] != "normal":
+            line += f"  [{it['priority']}]"
+        print(line)
     if not rows:
         print("nothing here. enjoy it or add something.")
 
@@ -148,15 +156,15 @@ def main():
     elif a.cmd in ("done", "undone"):
         try:
             done(a.n, a.cmd == "done")
-        except IndexError:
-            sys.exit(f"no item #{a.n}")
+        except IndexError as e:
+            sys.exit(str(e))
         except (OSError, ValueError) as e:
             ap.error(str(e))
     elif a.cmd == "pri":
         try:
             pri(a.n, a.priority)
-        except IndexError:
-            sys.exit(f"no item #{a.n}")
+        except IndexError as e:
+            sys.exit(str(e))
         except (OSError, ValueError) as e:
             ap.error(str(e))
     elif a.cmd == "stats":
@@ -168,8 +176,8 @@ def main():
     elif a.cmd == "rm":
         try:
             print(f"removed: {rm(a.n)}")
-        except IndexError:
-            sys.exit(f"no item #{a.n}")
+        except IndexError as e:
+            sys.exit(str(e))
         except (OSError, ValueError) as e:
             ap.error(str(e))
 

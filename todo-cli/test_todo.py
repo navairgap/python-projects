@@ -2,19 +2,24 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import todo
 
 
-class TestTodo(unittest.TestCase):
+class TodoStoreTestCase(unittest.TestCase):
+    """Shared fixture: point todo.STORE at a temporary json file."""
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.store = Path(self.tmp.name) / "todo.json"
-        self.old = todo.STORE
-        todo.STORE = self.store
         self.addCleanup(self.tmp.cleanup)
-        self.addCleanup(setattr, todo, "STORE", self.old)
+        self.store = Path(self.tmp.name) / "todo.json"
+        self.old_store = todo.STORE
+        todo.STORE = self.store
+        self.addCleanup(setattr, todo, "STORE", self.old_store)
 
+
+class TestTodo(TodoStoreTestCase):
     def test_add_and_list(self):
         todo.add("write tests")
         todo.add("ship it")
@@ -28,6 +33,7 @@ class TestTodo(unittest.TestCase):
             '[{"task": "missing done"}]',
             '[{"task": "task", "done": "false"}]',
             '[{"task": "task", "done": false, "priority": "urgent"}]',
+            '[{"task": "task", "done": false, "created": 7}]',
         )
         for payload in invalid_payloads:
             with self.subTest(payload=payload):
@@ -41,23 +47,39 @@ class TestTodo(unittest.TestCase):
             todo.load()
 
     def test_list_hides_completed_items_unless_all_requested(self):
-        from unittest.mock import patch
-
         todo.add("completed task")
         todo.add("open task")
         todo.done(1)
 
         with patch("builtins.print") as printer:
             todo.ls()
-        open_output = "\\n".join(str(call.args[0]) for call in printer.call_args_list)
+        open_output = "\n".join(str(call.args[0]) for call in printer.call_args_list)
         self.assertIn("open task", open_output)
         self.assertNotIn("completed task", open_output)
 
         with patch("builtins.print") as printer:
             todo.ls(show_all=True)
-        all_output = "\\n".join(str(call.args[0]) for call in printer.call_args_list)
+        all_output = "\n".join(str(call.args[0]) for call in printer.call_args_list)
         self.assertIn("open task", all_output)
         self.assertIn("completed task", all_output)
+
+    def test_listing_shows_timestamp_and_priority_tags(self):
+        todo.add("flagged task")
+        todo.pri(1, "high")
+
+        with patch("builtins.print") as printer:
+            todo.ls()
+        (line,) = (str(call.args[0]) for call in printer.call_args_list)
+        self.assertRegex(line, r"\(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\)")
+        self.assertIn("[high]", line)
+
+    def test_legacy_item_without_created_field_still_lists(self):
+        self.store.write_text(json.dumps([{"task": "old", "done": False}]), encoding="utf-8")
+        with patch("builtins.print") as printer:
+            todo.ls()
+        (line,) = (str(call.args[0]) for call in printer.call_args_list)
+        self.assertIn("old", line)
+        self.assertNotIn("(", line)
 
     def test_blank_task_rejected(self):
         for value in ("", "   ", "\t"):
@@ -90,8 +112,6 @@ class TestTodo(unittest.TestCase):
         self.assertEqual(todo.load()[0]["task"], task)
 
     def test_failed_atomic_replace_preserves_existing_store(self):
-        from unittest.mock import patch
-
         todo.add("existing task")
         original = self.store.read_text()
 
@@ -126,24 +146,9 @@ class TestTodo(unittest.TestCase):
                         operation()
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class TestPriorityField(unittest.TestCase):
-    def setUp(self):
-        import tempfile
-        from pathlib import Path
-        self.tmp = tempfile.TemporaryDirectory()
-        self.store = Path(self.tmp.name) / "todo.json"
-        self.old = todo.STORE
-        todo.STORE = self.store
-        self.addCleanup(self.tmp.cleanup)
-        self.addCleanup(setattr, todo, "STORE", self.old)
-
+class TestPriorityField(TodoStoreTestCase):
     def test_legacy_items_backfilled(self):
-        import json as _json
-        self.store.write_text(_json.dumps([{"task": "old", "done": False}]))
+        self.store.write_text(json.dumps([{"task": "old", "done": False}]))
         self.assertEqual(todo.load()[0]["priority"], "normal")
 
     def test_new_items_have_priority(self):
@@ -158,11 +163,7 @@ class TestPriorityField(unittest.TestCase):
         self.assertEqual(todo.load()[0]["priority"], "low")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class TestPublicMutationValidation(unittest.TestCase):
+class TestPublicMutationValidation(TodoStoreTestCase):
     def test_add_rejects_non_string_task_text(self):
         for value in (None, 7, [], {}):
             with self.subTest(value=value), self.assertRaises(ValueError):

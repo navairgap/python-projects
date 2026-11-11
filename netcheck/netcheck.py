@@ -2,10 +2,13 @@
 """netcheck - small network diagnostics. stdlib only."""
 
 import argparse
+import http.client
 import math
 import socket
 import sys
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 
 DEFAULT_TIMEOUT = 3
@@ -71,7 +74,7 @@ def http_status(url, timeout=DEFAULT_TIMEOUT):
             return r.status
     except urllib.error.HTTPError as e:
         return e.code
-    except (OSError, ValueError):
+    except (OSError, http.client.HTTPException, ValueError):
         return None
 
 def safe_url_label(url):
@@ -103,12 +106,17 @@ def local_ip():
 
 def main():
     ap = argparse.ArgumentParser(prog="netcheck", description="small network diagnostics")
+    ap.add_argument("-t", "--timeout", type=positive_timeout, default=DEFAULT_TIMEOUT,
+                    help="seconds per operation (default: %(default)s)")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("port"); p.add_argument("host"); p.add_argument("port", type=tcp_port, nargs="+")
-    p = sub.add_parser("dns"); p.add_argument("host")
-    p = sub.add_parser("http"); p.add_argument("url")
-    sub.add_parser("ip")
-    ap.add_argument("-t", "--timeout", type=positive_timeout, default=DEFAULT_TIMEOUT)
+    p = sub.add_parser("port", help="tcp connect check")
+    p.add_argument("host")
+    p.add_argument("port", type=tcp_port, nargs="+")
+    p = sub.add_parser("dns", help="resolve timing")
+    p.add_argument("host")
+    p = sub.add_parser("http", help="HEAD request status check")
+    p.add_argument("url")
+    sub.add_parser("ip", help="best-effort local ip")
     a = ap.parse_args()
 
     if a.cmd == "port":

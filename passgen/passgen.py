@@ -2,6 +2,7 @@
 """passgen - a small password generator. stdlib only."""
 
 import argparse
+import math
 import secrets
 import string
 
@@ -59,7 +60,6 @@ def strength(password, no_ambiguous=False, exclude_chars=""):
         raise ValueError("no_ambiguous must be a boolean")
     if not isinstance(exclude_chars, str):
         raise ValueError("exclude_chars must be a string")
-    import math
     excluded = set(exclude_chars)
     if no_ambiguous:
         excluded.update(AMBIGUOUS)
@@ -87,8 +87,7 @@ def passphrase(words=5, separator="-"):
         raise ValueError("words must be an integer of at least 1")
     if not isinstance(separator, str):
         raise ValueError("separator must be a string")
-    import secrets as _s
-    return separator.join(_s.choice(WORDS) for _ in range(words))
+    return separator.join(secrets.choice(WORDS) for _ in range(words))
 
 
 def main():
@@ -103,7 +102,7 @@ def main():
     ap.add_argument("--exclude", default="", help="characters to never use")
     ap.add_argument("-v", "--show-strength", action="store_true", help="print entropy rating")
     ap.add_argument("--passphrase", action="store_true", help="word-based passphrase instead")
-    ap.add_argument("--words", type=int, default=5)
+    ap.add_argument("--words", type=int, default=5, help="words per passphrase")
     a = ap.parse_args()
 
     if a.passphrase:

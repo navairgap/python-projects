@@ -1,13 +1,25 @@
+import argparse
+import contextlib
+import io
+import os
 import socket
+import subprocess
+import sys
 import unittest
 from unittest.mock import patch
 
 import netcheck
+from netcheck import safe_url_label
+
+SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "netcheck.py")
 
 
 class FakeConn:
-    def __enter__(self): return self
-    def __exit__(self, *a): return False
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
 
 
 class TestPort(unittest.TestCase):
@@ -38,15 +50,6 @@ class TestPort(unittest.TestCase):
         self.assertIsNone(ms)
 
 
-class TestDnsInvalidInputs(unittest.TestCase):
-    def test_blank_and_non_string_hosts_are_rejected_before_resolution(self):
-        for host in ("", "  ", None, 42, [], {}):
-            with self.subTest(host=host):
-                with patch.object(socket, "getaddrinfo") as resolve:
-                    self.assertIsNone(netcheck.dns_time(host))
-                    resolve.assert_not_called()
-
-
 class TestDns(unittest.TestCase):
     def test_resolves(self):
         self.assertIsNotNone(netcheck.dns_time("localhost"))
@@ -55,10 +58,18 @@ class TestDns(unittest.TestCase):
         with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror):
             self.assertIsNone(netcheck.dns_time("nope.invalid"))
 
+    def test_blank_and_non_string_hosts_are_rejected_before_resolution(self):
+        for host in ("", "  ", None, 42, [], {}):
+            with self.subTest(host=host):
+                with patch.object(socket, "getaddrinfo") as resolve:
+                    self.assertIsNone(netcheck.dns_time(host))
+                    resolve.assert_not_called()
+
 
 class TestHttp(unittest.TestCase):
     def test_404_is_a_valid_answer(self):
         from urllib.error import HTTPError
+
         with patch.object(netcheck.urllib.request, "urlopen",
                           side_effect=HTTPError("u", 404, "nf", {}, None)):
             self.assertEqual(netcheck.http_status("http://x/"), 404)
@@ -70,6 +81,14 @@ class TestHttp(unittest.TestCase):
 
     def test_malformed_url_returns_none(self):
         self.assertIsNone(netcheck.http_status("http://["))
+
+    def test_truncated_http_response_returns_none(self):
+        # http.client errors (e.g. IncompleteRead) are not OSError subclasses.
+        import http.client
+
+        with patch.object(netcheck.urllib.request, "urlopen",
+                          side_effect=http.client.IncompleteRead(b"partial")):
+            self.assertIsNone(netcheck.http_status("https://example.com"))
 
     def test_timeout_is_forwarded(self):
         with patch.object(netcheck.urllib.request, "urlopen") as open_url:
@@ -86,58 +105,6 @@ class TestHttp(unittest.TestCase):
             with self.subTest(timeout=timeout), self.assertRaises(ValueError):
                 netcheck.http_status("https://example.com", timeout=timeout)
 
-
-if __name__ == "__main__":
-    unittest.main()
-
-class FakeConn:
-    def __enter__(self): return self
-    def __exit__(self, *a): return False
-
-
-class TestCliValidation(unittest.TestCase):
-    def test_invalid_port_exits_before_network_access(self):
-        import os
-        import subprocess
-        import sys
-        script = os.path.join(os.path.dirname(__file__), "netcheck.py")
-        result = subprocess.run(
-            [sys.executable, script, "port", "example.com", "65536"],
-            capture_output=True, text=True, timeout=3,
-        )
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("port must be between 1 and 65535", result.stderr)
-
-
-class TestTimeout(unittest.TestCase):
-    def test_cli_timeout_parser_rejects_nonpositive_and_nonfinite(self):
-        for value in ("0", "-1", "inf", "nan"):
-            with self.subTest(value=value), self.assertRaises(SystemExit):
-                import argparse
-                parser = argparse.ArgumentParser()
-                parser.add_argument("--timeout", type=netcheck.positive_timeout)
-                parser.parse_args(["--timeout", value])
-
-    def test_cli_port_parser_rejects_out_of_range(self):
-        for value in ("0", "65536", "abc"):
-            with self.subTest(value=value), self.assertRaises(SystemExit):
-                import argparse
-                parser = argparse.ArgumentParser()
-                parser.add_argument("port", type=netcheck.tcp_port)
-                parser.parse_args([value])
-
-    def test_timeout_forwarded(self):
-        seen = {}
-        def fake(addr, timeout=3):
-            seen["timeout"] = timeout
-            return FakeConn()
-        with patch.object(socket, "create_connection", side_effect=fake):
-            ok, _ = netcheck.check_port("h", 80, timeout=0.5)
-        self.assertTrue(ok)
-        self.assertEqual(seen["timeout"], 0.5)
-
-
-class TestHttpUrlTypes(unittest.TestCase):
     def test_non_string_and_blank_urls_return_none_without_opening(self):
         for url in (None, "", "  ", 42, [], {}):
             with self.subTest(url=url):
@@ -145,17 +112,73 @@ class TestHttpUrlTypes(unittest.TestCase):
                     self.assertIsNone(netcheck.http_status(url))
                     open_url.assert_not_called()
 
-    def test_cli_does_not_echo_url_credentials_or_query_tokens(self):
-        import contextlib
-        import io
-        import sys
 
+class TestSafeUrlLabel(unittest.TestCase):
+    def test_removes_credentials_path_query_and_fragment(self):
+        url = "https://alice:secret@example.com/private?token=hidden#section"
+        self.assertEqual(safe_url_label(url), "https://example.com")
+
+    def test_keeps_brackets_for_ipv6_and_explicit_port(self):
+        self.assertEqual(
+            safe_url_label("https://[2001:db8::1]:8443/status?token=x"),
+            "https://[2001:db8::1]:8443",
+        )
+
+    def test_rejects_non_http_schemes_and_missing_hosts(self):
+        for value in ("ftp://example.com/file", "file:///etc/passwd", "/relative/path"):
+            with self.subTest(value=value):
+                self.assertEqual(safe_url_label(value), "<invalid URL>")
+
+    def test_malformed_port_does_not_raise(self):
+        self.assertEqual(safe_url_label("https://example.com:70000"), "<invalid URL>")
+
+
+class TestTimeoutForwarding(unittest.TestCase):
+    def test_timeout_forwarded(self):
+        seen = {}
+
+        def fake(addr, timeout=3):
+            seen["timeout"] = timeout
+            return FakeConn()
+
+        with patch.object(socket, "create_connection", side_effect=fake):
+            ok, _ = netcheck.check_port("h", 80, timeout=0.5)
+        self.assertTrue(ok)
+        self.assertEqual(seen["timeout"], 0.5)
+
+
+class TestArgparseTypes(unittest.TestCase):
+    def test_cli_timeout_parser_rejects_nonpositive_and_nonfinite(self):
+        for value in ("0", "-1", "inf", "nan"):
+            with self.subTest(value=value), self.assertRaises(SystemExit):
+                parser = argparse.ArgumentParser()
+                parser.add_argument("--timeout", type=netcheck.positive_timeout)
+                parser.parse_args(["--timeout", value])
+
+    def test_cli_port_parser_rejects_out_of_range(self):
+        for value in ("0", "65536", "abc"):
+            with self.subTest(value=value), self.assertRaises(SystemExit):
+                parser = argparse.ArgumentParser()
+                parser.add_argument("port", type=netcheck.tcp_port)
+                parser.parse_args([value])
+
+
+class TestCli(unittest.TestCase):
+    def test_invalid_port_exits_before_network_access(self):
+        result = subprocess.run(
+            [sys.executable, SCRIPT, "port", "example.com", "65536"],
+            capture_output=True, text=True, check=False, timeout=10,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("port must be between 1 and 65535", result.stderr)
+
+    def test_http_output_does_not_echo_credentials_or_query_tokens(self):
         supplied = "https://alice:secret@example.com/private?token=secret#fragment"
         output = io.StringIO()
         with patch.object(sys, "argv", ["netcheck.py", "http", supplied]):
             with patch.object(netcheck, "http_status", return_value=200):
                 with contextlib.redirect_stdout(output):
-                    with unittest.TestCase().assertRaises(SystemExit) as result:
+                    with self.assertRaises(SystemExit) as result:
                         netcheck.main()
         self.assertEqual(result.exception.code, 0)
         displayed = output.getvalue().strip()

@@ -22,41 +22,34 @@ def valid_port(value):
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    """Static handler that never serves anything outside the document root.
+
+    Symlinks and ".." segments that resolve outside `directory` are denied in
+    send_head, before the base class can open a file or list a directory —
+    pointing denial at a fixed fallback path could collide with a real file.
+    """
+
     allow_listing = False
 
     def _resolve_path(self, path):
-        """Resolve a path and mark requests that escape through symlinks."""
+        """Realpath a request; return None if it escapes the document root."""
         root = os.path.realpath(self.directory)
         candidate = os.path.realpath(super().translate_path(path))
         try:
-            inside_root = os.path.commonpath((root, candidate)) == root
-        except ValueError:
-            inside_root = False
-        if not inside_root:
-            self._serveit_path_denied = True
-            return root
-        return candidate
+            inside = os.path.commonpath((root, candidate)) == root
+        except ValueError:  # disjoint trees (e.g. different drives)
+            inside = False
+        return candidate if inside else None
 
     def translate_path(self, path):
-        """Return the prevalidated path during the base handler's lookup."""
-        cached = getattr(self, "_serveit_cached_path", None)
-        if cached is not None:
-            return cached
-        return self._resolve_path(path)
+        """Clamp every lookup to the root; escapes were denied in send_head."""
+        return self._resolve_path(path) or os.path.realpath(self.directory)
 
     def send_head(self):
-        # A fake filename under the document root can collide with a real file.
-        # Decide on the path before the base class sends any success headers.
-        self._serveit_path_denied = False
-        resolved = self._resolve_path(self.path)
-        if self._serveit_path_denied:
-            self.send_error(404, "not found")
+        if self._resolve_path(self.path) is None:
+            self.send_error(404, "Not Found")
             return None
-        self._serveit_cached_path = resolved
-        try:
-            return super().send_head()
-        finally:
-            self._serveit_cached_path = None
+        return super().send_head()
 
     def log_message(self, fmt, *args):
         if not QUIET:
@@ -68,6 +61,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return None
         return super().list_directory(path)
 
+
 def main():
     global QUIET
     ap = argparse.ArgumentParser(prog="serveit", description="serve a directory over http")
@@ -75,11 +69,11 @@ def main():
     ap.add_argument("-p", "--port", type=valid_port, default=8000)
     ap.add_argument("-b", "--bind", default="127.0.0.1")
     ap.add_argument("-q", "--quiet", action="store_true")
-    ap.add_argument("--list", dest="listing", action="store_true", help="enable directory listings (disabled by default)")
-    ap.add_argument("--no-listing", action="store_true", help="disable directory listings (default)")
+    ap.add_argument("--list", dest="listing", action="store_true",
+                    help="enable directory listings (disabled by default)")
     a = ap.parse_args()
     QUIET = a.quiet
-    Handler.allow_listing = a.listing and not a.no_listing
+    Handler.allow_listing = a.listing
 
     handler = functools.partial(Handler, directory=os.path.abspath(a.directory))
     with http.server.ThreadingHTTPServer((a.bind, a.port), handler) as srv:

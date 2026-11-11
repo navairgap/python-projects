@@ -1,6 +1,8 @@
 PY ?= python3
 
-.PHONY: test run-%
+PROJECTS := passgen todo-cli weather-cli disk-audit netcheck serveit
+
+.PHONY: test $(PROJECTS:%=run-%)
 
 test:
 	$(PY) -m unittest discover -s passgen -v
@@ -18,6 +20,9 @@ run-todo:
 
 run-weather:
 	$(PY) weather-cli/weather.py
+
+run-disk-audit:
+	$(PY) disk-audit/audit.py
 
 run-netcheck:
 	$(PY) netcheck/netcheck.py ip

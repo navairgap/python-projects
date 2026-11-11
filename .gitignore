@@ -1,6 +1,10 @@
 __pycache__/
 *.pyc
-todo-cli/todo.json
 .coverage
-netcheck/__pycache__/
-serveit/__pycache__/
+todo-cli/todo.json
+
+# local tool state
+.zcode/
+.mimosa/
+.v2c/
+.video_agent/

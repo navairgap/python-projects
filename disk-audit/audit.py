@@ -6,10 +6,10 @@ import csv
 import json
 import math
 import os
-import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 EXCLUDE_DIRS = {".git", "node_modules", "__pycache__", ".cache"}
+
 
 @dataclass
 class DirStat:
@@ -17,11 +17,13 @@ class DirStat:
     size: int = 0
     files: int = 0
 
+
 def format_size(n):
     for unit in ["B", "K", "M", "G", "T"]:
         if n < 1024 or unit == "T":
             return f"{n}B" if unit == "B" else f"{n:.1f}{unit}"
         n /= 1024
+
 
 def parse_size(s):
     """Parse a non-negative byte count or a value with B/K/M/G/T suffix."""
@@ -42,34 +44,56 @@ def parse_size(s):
     except (ValueError, OverflowError):
         raise ValueError("size must be a non-negative number with optional B/K/M/G/T suffix") from None
 
-def audit(root, exclude=(), min_size=0, _depth=0):
-    """walk root; return (per-dir stats, total bytes, total files)."""
+
+def audit(root, exclude=(), min_size=0):
+    """Walk root; return (per-dir stats, total bytes, total files).
+
+    Traverses iteratively with an explicit stack, so directory nesting deeper
+    than the interpreter's recursion limit cannot crash the scan. Every
+    directory aggregates the files directly inside it plus everything beneath
+    it, skipping symlinks, EXCLUDE_DIRS, and the caller's exclude names.
+    Unreadable subtrees contribute nothing and produce no entry.
+    """
+    # nodes[i] = [path, depth, subtree_size, subtree_files, parent_index]
+    nodes = []
+    stack = [(root, 0, -1)]
+    while stack:
+        path, depth, parent = stack.pop()
+        index = len(nodes)
+        nodes.append([path, depth, 0, 0, parent])
+        try:
+            entries = list(os.scandir(path))
+        except OSError:
+            continue  # unreadable subtree: contributes nothing, gets no entry
+        for entry in entries:
+            try:
+                if entry.is_symlink():
+                    continue
+                if entry.is_dir(follow_symlinks=False):
+                    if entry.name in EXCLUDE_DIRS or entry.name in exclude:
+                        continue
+                    stack.append((entry.path, depth + 1, index))
+                else:
+                    nodes[index][2] += entry.stat().st_size
+                    nodes[index][3] += 1
+            except OSError:
+                continue
+    # Children always appear after their parents in `nodes`, so one reverse
+    # pass folds every subtree total into its parent directory.
     stats = []
     total = 0
     count = 0
-    try:
-        entries = list(os.scandir(root))
-    except (PermissionError, OSError):
-        return stats, 0, 0
-    for e in entries:
-        try:
-            if e.is_symlink():
-                continue
-            if e.is_dir(follow_symlinks=False):
-                if e.name in EXCLUDE_DIRS or e.name in exclude:
-                    continue
-                sub, s, c = audit(e.path, exclude, min_size, _depth + 1)
-                stats.extend(sub)
-                total += s
-                count += c
-            else:
-                total += e.stat().st_size
-                count += 1
-        except OSError:
-            continue
-    if _depth > 0 and total >= min_size:
-        stats.append(DirStat(root, total, count))
+    for i in reversed(range(len(nodes))):
+        path, depth, size, files, parent = nodes[i]
+        if parent >= 0:
+            nodes[parent][2] += size
+            nodes[parent][3] += files
+        else:  # the root
+            total, count = size, files
+        if depth > 0 and size >= min_size:
+            stats.append(DirStat(path, size, files))
     return stats, total, count
+
 
 def render_bars(rows, width=40):
     if not rows:
@@ -79,6 +103,7 @@ def render_bars(rows, width=40):
         f"{format_size(r.size):>8}  {'█' * max(1, int(r.size / mx * width))}  {r.path}"
         for r in rows
     ]
+
 
 def main():
     ap = argparse.ArgumentParser(prog="disk-audit", description="find what's eating your disk")
@@ -104,11 +129,14 @@ def main():
     rows = stats[: a.top]
 
     if a.csv:
-        with open(a.csv, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["path", "size_bytes", "files"])
-            for s in rows:
-                w.writerow([s.path, s.size, s.files])
+        try:
+            with open(a.csv, "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)
+                w.writerow(["path", "size_bytes", "files"])
+                for s in rows:
+                    w.writerow([s.path, s.size, s.files])
+        except OSError as exc:
+            ap.error(f"cannot write csv: {exc}")
         print(f"wrote {a.csv}")
 
     if a.json:

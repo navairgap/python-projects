@@ -11,7 +11,7 @@ python3 passgen.py --no-symbols # letters + digits only
 uses `secrets`, guarantees at least one character from every selected set,
 shuffles so the first chars aren't predictable.
 
-run tests: `python3 -m unittest discover -s . -v`
+run tests: `python3 -m unittest discover -s passgen -v`
 
 ## passphrases
 
