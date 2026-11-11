@@ -16,6 +16,36 @@ def run_cli(arguments):
     return subprocess.run(command, capture_output=True, text=True, check=False, timeout=10)
 
 
+def rmtree_bottom_up(root):
+    """Remove a tree without recursion.
+
+    shutil.rmtree and os.walk recurse per directory level and overflow on
+    trees deeper than the interpreter's recursion limit before python 3.12.
+    """
+    dirs = []  # every directory, in discovery order (parents before children)
+    stack = [root]
+    while stack:
+        path = stack.pop()
+        dirs.append(path)
+        try:
+            entries = list(os.scandir(path))
+        except OSError:
+            continue
+        for entry in entries:
+            try:
+                if entry.is_dir(follow_symlinks=False):
+                    stack.append(entry.path)
+                else:
+                    os.unlink(entry.path)
+            except OSError:
+                continue
+    for path in reversed(dirs):  # children removed before their parents
+        try:
+            os.rmdir(path)
+        except OSError:
+            pass
+
+
 class TestAudit(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -65,15 +95,18 @@ class TestAudit(unittest.TestCase):
     def test_deeper_than_default_recursion_limit(self):
         # Regression: the walk used to recurse per directory level, so any
         # tree deeper than the interpreter's recursion limit crashed the scan.
-        # (setUp adds 700 bytes across sub/deep; the deep branch adds 10.)
+        # Uses its own root: TemporaryDirectory's rmtree-based cleanup recurses
+        # per level too and would crash on deep trees before python 3.12.
+        root = tempfile.mkdtemp()
+        self.addCleanup(rmtree_bottom_up, root)
         depth = 1900
-        path = self.root
+        path = root
         for _ in range(depth):
             path = os.path.join(path, "d")
             os.mkdir(path)
         self._w(os.path.join(path, "leaf.bin"), 10)
-        stats, total, count = audit(self.root)
-        self.assertEqual((total, count), (710, 4))
+        stats, total, count = audit(root)
+        self.assertEqual((total, count), (10, 1))
         self.assertEqual(sum(1 for s in stats if s.size == 10), depth)
 
 
